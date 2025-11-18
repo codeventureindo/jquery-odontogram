@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odontogram Options Mode Example</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="jquery.odontogram-all-combination.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        .info-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info-box h3 {
+            margin-top: 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Odontogram Options Mode - Contoh Penggunaan</h1>
+    
+    <div class="info-box">
+        <h3>Cara Menggunakan:</h3>
+        <ol>
+            <li>Klik tombol "Aktifkan Mode OPTIONS" untuk mengaktifkan mode</li>
+            <li>Klik pada gigi mana saja di odontogram</li>
+            <li>Lihat informasi gigi yang diklik muncul di bawah</li>
+            <li>Gunakan form untuk menambah custom options ke gigi tertentu</li>
+        </ol>
+    </div>
+
+    <div>
+        <button id="btnOptionsMode">Aktifkan Mode OPTIONS</button>
+        <button id="btnDefaultMode">Kembali ke Mode Default</button>
+    </div>
+
+    <canvas id="odontogram"></canvas>
+
+    <div class="info-box" id="clickInfo" style="display: none;">
+        <h3>Informasi Gigi yang Diklik:</h3>
+        <p><strong>Nomor Gigi:</strong> <span id="toothNumber">-</span></p>
+        <p><strong>Jumlah Geometry:</strong> <span id="geometryCount">0</span></p>
+        <p><strong>Data Geometry:</strong></p>
+        <pre id="geometryData" style="background: white; padding: 10px; border-radius: 4px; overflow: auto;"></pre>
+    </div>
+
+    <div class="info-box">
+        <h3>Set Options untuk Gigi:</h3>
+        <div>
+            <input type="text" id="inputToothNumber" placeholder="Nomor gigi (contoh: 11)" />
+            <input type="text" id="inputOptionKey" placeholder="Key (contoh: note)" />
+            <input type="text" id="inputOptionValue" placeholder="Value (contoh: Perlu kontrol)" />
+            <button id="btnSetOption">Set Option</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <button id="btnGetToothData">Get Data Gigi</button>
+            <input type="text" id="inputGetTooth" placeholder="Nomor gigi" />
+        </div>
+    </div>
+
+    <div class="info-box" id="toothDataInfo" style="display: none;">
+        <h3>Data Gigi:</h3>
+        <pre id="toothDataDisplay" style="background: white; padding: 10px; border-radius: 4px; overflow: auto;"></pre>
+    </div>
+
+    <script>
+        // Inisialisasi odontogram
+        $('#odontogram').odontogram('init', {
+            width: 800,
+            height: 480
+        });
+
+        // Set beberapa geometry awal untuk testing
+        var initialGeometry = {
+            "110:30;150:70;130:50": [
+                { name: "RCT", vertices: [{x: 110, y: 30}, {x: 150, y: 70}], options: {} },
+                { name: "FMC", vertices: [{x: 110, y: 30}, {x: 150, y: 70}], options: {} }
+            ]
+        };
+        $('#odontogram').odontogram('setGeometry', initialGeometry);
+
+        // Event handler untuk toothclick
+        $('#odontogram').on('toothclick', function(e, toothGeometry, toothNumber, keyCoord) {
+            console.log('Tooth clicked!');
+            console.log('Tooth Number:', toothNumber);
+            console.log('Key Coord:', keyCoord);
+            console.log('Geometry:', toothGeometry);
+
+            // Tampilkan info
+            $('#clickInfo').show();
+            $('#toothNumber').text(toothNumber);
+            $('#geometryCount').text(toothGeometry.length);
+            $('#geometryData').text(JSON.stringify(toothGeometry, null, 2));
+        });
+
+        // Tombol aktifkan mode OPTIONS
+        $('#btnOptionsMode').click(function() {
+            $('#odontogram').odontogram('setMode', ODONTOGRAM_MODE_OPTIONS);
+            $(this).css('background', '#2196F3');
+            $('#btnDefaultMode').css('background', '#4CAF50');
+            alert('Mode OPTIONS diaktifkan. Sekarang klik gigi mana saja!');
+        });
+
+        // Tombol kembali ke mode default
+        $('#btnDefaultMode').click(function() {
+            $('#odontogram').odontogram('setMode', ODONTOGRAM_MODE_DEFAULT);
+            $(this).css('background', '#2196F3');
+            $('#btnOptionsMode').css('background', '#4CAF50');
+        });
+
+        // Set option untuk gigi
+        $('#btnSetOption').click(function() {
+            var toothNum = $('#inputToothNumber').val();
+            var key = $('#inputOptionKey').val();
+            var value = $('#inputOptionValue').val();
+
+            if (!toothNum || !key) {
+                alert('Nomor gigi dan Key harus diisi!');
+                return;
+            }
+
+            var options = {};
+            options[key] = value;
+
+            var result = $('#odontogram').odontogram('setToothOptions', toothNum, options);
+            
+            if (result) {
+                alert('Options berhasil diset untuk gigi ' + toothNum + '!\n' + key + ': ' + value);
+                // Clear inputs
+                $('#inputToothNumber').val('');
+                $('#inputOptionKey').val('');
+                $('#inputOptionValue').val('');
+            } else {
+                alert('Gigi tidak ditemukan!');
+            }
+        });
+
+        // Get tooth data
+        $('#btnGetToothData').click(function() {
+            var toothNum = $('#inputGetTooth').val();
+            
+            if (!toothNum) {
+                alert('Nomor gigi harus diisi!');
+                return;
+            }
+
+            var data = $('#odontogram').odontogram('getToothData', toothNum);
+            
+            if (data) {
+                $('#toothDataInfo').show();
+                $('#toothDataDisplay').text(JSON.stringify(data, null, 2));
+            } else {
+                alert('Gigi tidak ditemukan!');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -64,6 +64,10 @@
                 class="btn btn-dark fw-semibold shadow-sm">
                 DOWNLOAD PNG
             </button>
+            <button type="button" id="ODONTOGRAM_MODE_NOTE"
+                class="btn btn-secondary text-white fw-semibold shadow-sm">
+                CATATAN TEKS (NOTE)
+            </button>
         </div>
 
         <!-- Baris 2: Tambalan & Perawatan Permukaan -->
@@ -198,6 +202,26 @@
                 BTR ARROW
             </button>
         </div>
+        <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="myModalLabel">Tambah Catatan</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="noteInput" class="form-label">Catatan untuk Gigi <span id="toothNumberLabel"></span>:</label>
+                            <textarea class="form-control" id="noteInput" rows="4"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="button" id="saveBtn" class="btn btn-primary">Simpan Catatan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
@@ -259,6 +283,7 @@
             $("#ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_LEFT").click(() => setMode(ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_LEFT));
             $("#ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT").click(() => setMode(ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT));
             $("#ODONTOGRAM_MODE_GIC").click(() => setMode(ODONTOGRAM_MODE_GIC));
+            $("#ODONTOGRAM_MODE_NOTE").click(() => setMode(ODONTOGRAM_MODE_OPTIONS));
             $("#download").click(function () {
                 var dataURL = $("#odontogram").odontogram('getDataURL');
                 if (dataURL) {
@@ -272,8 +297,32 @@
                     alert('Gagal mendapatkan data gambar. Silakan coba lagi.');
                 }
                
-            })
+            });
+
+            $('#odontogram').on('toothclick', function(e, data) {
+                console.log('Tooth clicked data:', data);
+                $('#toothNumberLabel').text(data.num);
+                $('#myModal').data('toothNumber', data.num);
+                $('#noteInput').val(data.options ? data.options.text || '' : '');
+                var myModal = new bootstrap.Modal(document.getElementById('myModal'));
+                myModal.show();
+            
+            });
+
+
+            $('#saveBtn').click(function() {
+                var toothNumber = $('#myModal').data('toothNumber');
+                $('#odontogram').odontogram('addOptions', 
+                    toothNumber, 
+                    ODONTOGRAM_MODE_OPTIONS, 
+                    { text: $('#noteInput').val() }
+                );
+                $('#noteInput').val('');
+                $('#myModal').modal('hide');
+            });
         });
+
+
     </script>
 </body>
 </html>

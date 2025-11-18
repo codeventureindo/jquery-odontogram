@@ -28,7 +28,7 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_RIGHT = 24; // BOTTOM-RIGHT ARROW
 var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_LEFT = 25; // BOTTOM-TURN-LEFT ARROW
 var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
 var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
-
+var ODONTOGRAM_MODE_OPTIONS = 28; // OPTIONS - Mode dinamis dengan event 'toothclick'
 
 
 // Create closure.
@@ -313,6 +313,16 @@ var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
         ctx.textBaseline = "bottom";
         ctx.textAlign = "left";
         ctx.fillText('   ANO', x, y);
+    }
+    // Class OPTIONS = OPTIONS teks pada gigi (invisible, hanya data)
+    function OPTIONS(vertices, options) {
+        this.name = 'OPTIONS';
+        this.vertices = vertices;
+        this.options = $.extend({ text: '' }, options);
+        return this;
+    }
+    OPTIONS.prototype.render = function (ctx) {
+        // OPTIONS tidak ditampilkan di canvas, hanya menyimpan data keterangan
     }
     // Class CARIES = Caries = Tambalan sementara (car)
     function CARIES(vertices, options) {
@@ -1832,6 +1842,102 @@ var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
         return tempCanvas.toDataURL();
     }
 
+    Odontogram.prototype.addOptions = function (toothNumber, mode, options) {
+        // Cari tooth berdasarkan nomor
+        var keyCoord = null;
+        var coord = null;
+        for (var key in this.teeth) {
+            if (this.teeth[key].num == toothNumber) {
+                keyCoord = key;
+                coord = parseKeyCoord(key);
+                break;
+            }
+        }
+
+        if (!keyCoord) {
+            console.error('Tooth number not found:', toothNumber);
+            return false;
+        }
+
+        // Buat geometry baru
+        var newGeom = convertGeom({
+            vertices: [
+                { x: coord.x1, y: coord.y1 },
+                { x: coord.x2, y: coord.y2 }
+            ],
+            pos: toothNumber,
+            options: options || {}
+        }, mode);
+
+        // Update geometry
+        var tempGeoms = {};
+        tempGeoms[keyCoord] = [newGeom];
+        this.geometry = joinShapeTeeth(this.geometry, tempGeoms);
+        
+
+        this.jquery.trigger('change', [this.geometry]);
+        this.redraw();
+        
+        return true;
+    }
+
+    // Method untuk mendapatkan OPTIONS dari gigi tertentu
+    Odontogram.prototype.getOptions = function (toothNumber) {
+        // Cari tooth berdasarkan nomor
+        var keyCoord = null;
+        for (var key in this.teeth) {
+            if (this.teeth[key].num == toothNumber) {
+                keyCoord = key;
+                break;
+            }
+        }
+
+        if (!keyCoord) {
+            console.warn('Tooth number not found:', toothNumber);
+            return null;
+        }
+
+        // Ambil geometry untuk gigi ini
+        var toothGeometry = this.geometry[keyCoord] || [];
+        
+        // Cari OPTIONS dalam geometry
+        for (var i = 0; i < toothGeometry.length; i++) {
+            if (toothGeometry[i].name === 'OPTIONS') {
+                return toothGeometry[i].options || {};
+            }
+        }
+
+        return null; // Tidak ada OPTIONS
+    }
+
+    // Method untuk mendapatkan semua geometry dari gigi tertentu
+    Odontogram.prototype.getToothGeometry = function (toothNumber) {
+        // Cari tooth berdasarkan nomor
+        var keyCoord = null;
+        for (var key in this.teeth) {
+            if (this.teeth[key].num == toothNumber) {
+                keyCoord = key;
+                break;
+            }
+        }
+
+        if (!keyCoord) {
+            console.warn('Tooth number not found:', toothNumber);
+            return [];
+        }
+
+        return this.geometry[keyCoord] || [];
+    }
+
+    // Method gabungan untuk mendapatkan data lengkap gigi (geometry + options)
+    Odontogram.prototype.getToothData = function (toothNumber) {
+        return {
+            num: toothNumber,
+            geometry: this.getToothGeometry(toothNumber),
+            options: this.getOptions(toothNumber)
+        };
+    }
+
     $.fn.odontogram = function (mode, arg1, arg2, arg3, arg4) {
         var instance = this.data('odontogram');
         switch (mode) {
@@ -1865,6 +1971,18 @@ var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
                 checkOdontogram(this, mode);
                 instance.setGeometryByPos(arg1);
                 break;
+            case 'addOptions':
+                checkOdontogram(this, mode);
+                return instance.addOptions(arg1, arg2, arg3);
+            case 'getOptions':
+                checkOdontogram(this, mode);
+                return instance.getOptions(arg1);
+            case 'getToothGeometry':
+                checkOdontogram(this, mode);
+                return instance.getToothGeometry(arg1);
+            case 'getToothData':
+                checkOdontogram(this, mode);
+                return instance.getToothData(arg1);
             // DLL
         }
 
@@ -1950,6 +2068,9 @@ var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
                 break;
             case ODONTOGRAM_MODE_ANO:
                 newGeometry = new ANO(geometry.vertices);
+                break;
+            case ODONTOGRAM_MODE_OPTIONS:
+                newGeometry = new OPTIONS(geometry.vertices, geometry.options);
                 break;
             case ODONTOGRAM_MODE_CARIES:
                 newGeometry = new CARIES(geometry.vertices);
@@ -2049,6 +2170,9 @@ var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
                 break;
             case 'ANO':
                 newGeom = new ANO(geometry.vertices, geometry.options);
+                break;
+            case 'OPTIONS':
+                newGeom = new OPTIONS(geometry.vertices, geometry.options);
                 break;
             case 'CARIES':
                 newGeom = new CARIES(geometry.vertices, geometry.options);
@@ -2309,6 +2433,7 @@ var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
                 case ODONTOGRAM_MODE_UNE:
                 case ODONTOGRAM_MODE_PRE:
                 case ODONTOGRAM_MODE_ANO:
+                case ODONTOGRAM_MODE_OPTIONS:
                 case ODONTOGRAM_MODE_CFR:
                 case ODONTOGRAM_MODE_FMC:
                 case ODONTOGRAM_MODE_POC:
@@ -2422,6 +2547,14 @@ var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
                             ],
                             pos: teeth.num
                         }, instance.mode)];
+                    }
+                    break;
+                case ODONTOGRAM_MODE_OPTIONS:
+                    if (isRectIntersect(coord, { x1: mouse.x, y1: mouse.y, x2: mouse.x, y2: mouse.y })) {
+                        // Trigger event 'toothclick' dengan data lengkap (geometry + options)
+                        var toothData = instance.getToothData(teeth.num);
+                        $this.trigger('toothclick', [toothData]);
+                        return; // Return early karena async handling
                     }
                     break;
                 case ODONTOGRAM_MODE_BRIDGE:
