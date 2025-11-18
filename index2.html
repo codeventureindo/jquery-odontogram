@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odontogram Interaktif</title>
+    
+    <!-- Hapus Tailwind, Ganti dengan Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!-- Memuat file odontogram yang sudah diperbaiki -->
+    <script src="jquery.odontogram-all-combination.js"></script>
+    
+    <!-- Bootstrap JS (Popper included) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <style type="text/css">
+        /* Styling kustom untuk canvas agar terlihat bagus di Bootstrap */
+        #odontogram {
+            border: 2px solid #ced4da; /* Warna border Bootstrap default */
+            margin-top: 1.5rem;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            border-radius: 0.25rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        /* Menggunakan Bootstrap d-flex dan gap untuk grup tombol */
+        .mode-group {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        /* Membuat tombol lebih konsisten ukurannya */
+        .mode-group .btn {
+            white-space: nowrap;
+            min-width: 120px;
+        }
+    </style>
+</head>
+<body class="bg-light p-4">
+    <h1 class="h3 fw-bold text-center text-dark mb-4">Peta Odontogram</h1>
+
+    <canvas id="odontogram" style="width: 900px; height: 420px; ">
+        Browser anda tidak support canvas, silahkan update browser anda.
+    </canvas>
+
+    <!-- Menggunakan container Bootstrap untuk tata letak -->
+    <div class="container mt-4">
+        
+        <!-- Baris 1: Mode Default & Hapus -->
+        <div class="mode-group border-bottom pb-3">
+            <button type="button" id="ODONTOGRAM_MODE_DEFAULT"
+                class="btn btn-primary fw-semibold shadow-sm">
+                Mode Normal
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_HAPUS"
+                class="btn btn-danger fw-semibold shadow-sm">
+                HAPUS Tanda
+            </button>
+            <button type="button" id="download"
+                class="btn btn-dark fw-semibold shadow-sm">
+                DOWNLOAD PNG
+            </button>
+        </div>
+
+        <!-- Baris 2: Tambalan & Perawatan Permukaan -->
+        <div class="mode-group border-bottom pb-3">
+            <h2 class="h6 w-100 mt-2 mb-1 text-secondary">Tindakan Permukaan:</h2>
+            <button type="button" id="ODONTOGRAM_MODE_AMF"
+                class="btn btn-dark text-white fw-semibold shadow-sm">
+                AMALGAM (AMF)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_COF"
+                class="btn btn-success text-white fw-semibold shadow-sm" style="background-color: #ffc0cb; border-color: #ffc0cb;">
+                COMPOSITE (COF)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_FIS"
+                class="btn btn-info text-white fw-semibold shadow-sm" style="background-color: #87ceeb; border-color: #87ceeb;">
+                FISSURE SEALANT (FIS)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_CARIES"
+                class="btn btn-warning text-dark fw-semibold shadow-sm">
+                CARIES (CAR)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_GIC"
+                class="btn btn-info text-white fw-semibold shadow-sm" style="background-color: #90ee90; border-color: #90ee90;">
+                GLASS IONOMER CEMENT (GIC)
+            </button>
+        </div>
+
+        <!-- Baris 3: Kondisi Gigi Secara Keseluruhan & Trauma -->
+        <div class="mode-group border-bottom pb-3">
+            <h2 class="h6 w-100 mt-2 mb-1 text-secondary">Kondisi / Kelainan:</h2>
+            <button type="button" id="ODONTOGRAM_MODE_NVT"
+                class="btn btn-warning text-white fw-semibold shadow-sm" style="background-color: #fd7e14; border-color: #fd7e14;">
+                NON-VITAL (NVT)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_RCT"
+                class="btn btn-warning text-white fw-semibold shadow-sm" style="background-color: #a0522d; border-color: #a0522d;">
+                PERAWATAN AKAR (RCT)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_CFR"
+                class="btn btn-danger text-white fw-semibold shadow-sm" style="background-color: #8b0000; border-color: #8b0000;">
+                FRACTURE (CFR)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_RRX"
+                class="btn btn-danger text-white fw-semibold shadow-sm" style="background-color: #4b0082; border-color: #4b0082;">
+                SISA AKAR (RRX)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ANO"
+                class="btn btn-light text-dark fw-semibold shadow-sm">
+                ANOMALI (ANO)
+            </button>
+        </div>
+
+        <!-- Baris 4: Prostetik & Keterbatasan -->
+        <div class="mode-group border-bottom pb-3">
+            <h2 class="h6 w-100 mt-2 mb-1 text-secondary">Prostetik / Status Gigi:</h2>
+            <button type="button" id="ODONTOGRAM_MODE_FMC"
+                class="btn btn-secondary text-white fw-semibold shadow-sm">
+                FULL METAL CROWN (FMC)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_POC"
+                class="btn btn-info text-white fw-semibold shadow-sm">
+                PORCELAIN CROWN (POC)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_IPX"
+                class="btn btn-dark text-white fw-semibold shadow-sm" style="background-color: #1e90ff; border-color: #1e90ff;">
+                IMPLANT (IPX)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_MIS"
+                class="btn btn-dark text-white fw-semibold shadow-sm">
+                GIGI HILANG (MIS)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_FRM_ACR"
+                class="btn btn-primary text-white fw-semibold shadow-sm" style="background-color: #4b0082; border-color: #4b0082;">
+                DENTURE (FRM/ACR)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_BRIDGE"
+                class="btn btn-primary text-white fw-semibold shadow-sm" style="background-color: #800080; border-color: #800080;">
+                BRIDGE
+            </button>
+        </div>
+
+        <!-- Baris 5: Status Erupsi & Non-existant -->
+        <div class="mode-group border-bottom pb-3">
+            <h2 class="h6 w-100 mt-2 mb-1 text-secondary">Status Erupsi:</h2>
+            <button type="button" id="ODONTOGRAM_MODE_NON"
+                class="btn btn-secondary text-white fw-semibold shadow-sm">
+                TIDAK ADA (NON)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_UNE"
+                class="btn btn-secondary text-white fw-semibold shadow-sm" style="background-color: #6c757d; border-color: #6c757d;">
+                UN-ERUPTED (UNE)
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_PRE"
+                class="btn btn-secondary text-white fw-semibold shadow-sm" style="background-color: #495057; border-color: #495057;">
+                PARTIAL ERUPTED (PRE)
+            </button>
+        </div>
+
+        <!-- Baris 6: Panah (Orthodontic/Pergerakan) -->
+        <div class="mode-group">
+            <h2 class="h6 w-100 mt-2 mb-1 text-secondary">Pergerakan/Panah:</h2>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_TOP_LEFT"
+                class="btn btn-success text-white fw-semibold shadow-sm" style="background-color: #1e847f; border-color: #1e847f;">
+                TL ARROW
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_TOP_RIGHT"
+                class="btn btn-success text-white fw-semibold shadow-sm" style="background-color: #1e847f; border-color: #1e847f;">
+                TR ARROW
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_TOP_TURN_LEFT"
+                class="btn btn-success text-white fw-semibold shadow-sm" style="background-color: #0b666a; border-color: #0b666a;">
+                TTL ARROW
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_TOP_TURN_RIGHT"
+                class="btn btn-success text-white fw-semibold shadow-sm" style="background-color: #0b666a; border-color: #0b666a;">
+                TTR ARROW
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_BOTTOM_LEFT"
+                class="btn btn-info text-white fw-semibold shadow-sm" style="background-color: #00bcd4; border-color: #00bcd4;">
+                BL ARROW
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_BOTTOM_RIGHT"
+                class="btn btn-info text-white fw-semibold shadow-sm" style="background-color: #00bcd4; border-color: #00bcd4;">
+                BR ARROW
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_LEFT"
+                class="btn btn-info text-white fw-semibold shadow-sm" style="background-color: #0097a7; border-color: #0097a7;">
+                BTL ARROW
+            </button>
+            <button type="button" id="ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT"
+                class="btn btn-info text-white fw-semibold shadow-sm" style="background-color: #0097a7; border-color: #0097a7;">
+                BTR ARROW
+            </button>
+        </div>
+    </div>
+
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            // Inisialisasi Odontogram
+            $("#odontogram").odontogram('init', {
+                width: "1350px",
+                height: "630px"
+            });
+            // Set data awal untuk demonstrasi
+            $("#odontogram").odontogram('setGeometryByPos', [
+                { code: 'AMF', pos: '18-R' },
+                { code: 'AMF', pos: '18-L' },
+                { code: 'CARIES', pos: '83-M' },
+                { code: 'POC', pos: '84' },
+                // Tambahkan contoh kombinasi: RCT pada 36, COF di 36-T, AMF di 36-M
+                { code: 'RCT', pos: '36' },
+                { code: 'COF', pos: '36-T' },
+                { code: 'AMF', pos: '36-M' }
+            ]);
+
+            $('#odontogram').on('change', function (_, geometry) {
+                console.log("Odontogram Geometry Updated:", geometry);
+            });
+
+            // Fungsi untuk mengatur mode
+            function setMode(mode) {
+                $("#odontogram").odontogram('setMode', mode);
+            }
+
+            // Menghubungkan tombol ke mode Odontogram
+            $("#ODONTOGRAM_MODE_HAPUS").click(() => setMode(ODONTOGRAM_MODE_HAPUS));
+            $("#ODONTOGRAM_MODE_DEFAULT").click(() => setMode(ODONTOGRAM_MODE_DEFAULT));
+            $("#ODONTOGRAM_MODE_AMF").click(() => setMode(ODONTOGRAM_MODE_AMF));
+            $("#ODONTOGRAM_MODE_COF").click(() => setMode(ODONTOGRAM_MODE_COF));
+            $("#ODONTOGRAM_MODE_FIS").click(() => setMode(ODONTOGRAM_MODE_FIS));
+            $("#ODONTOGRAM_MODE_NVT").click(() => setMode(ODONTOGRAM_MODE_NVT));
+            $("#ODONTOGRAM_MODE_RCT").click(() => setMode(ODONTOGRAM_MODE_RCT));
+            $("#ODONTOGRAM_MODE_NON").click(() => setMode(ODONTOGRAM_MODE_NON));
+            $("#ODONTOGRAM_MODE_UNE").click(() => setMode(ODONTOGRAM_MODE_UNE));
+            $("#ODONTOGRAM_MODE_PRE").click(() => setMode(ODONTOGRAM_MODE_PRE));
+            $("#ODONTOGRAM_MODE_ANO").click(() => setMode(ODONTOGRAM_MODE_ANO));
+            $("#ODONTOGRAM_MODE_CARIES").click(() => setMode(ODONTOGRAM_MODE_CARIES));
+            $("#ODONTOGRAM_MODE_CFR").click(() => setMode(ODONTOGRAM_MODE_CFR));
+            $("#ODONTOGRAM_MODE_FMC").click(() => setMode(ODONTOGRAM_MODE_FMC));
+            $("#ODONTOGRAM_MODE_POC").click(() => setMode(ODONTOGRAM_MODE_POC));
+            $("#ODONTOGRAM_MODE_RRX").click(() => setMode(ODONTOGRAM_MODE_RRX));
+            $("#ODONTOGRAM_MODE_MIS").click(() => setMode(ODONTOGRAM_MODE_MIS));
+            $("#ODONTOGRAM_MODE_IPX").click(() => setMode(ODONTOGRAM_MODE_IPX));
+            $("#ODONTOGRAM_MODE_FRM_ACR").click(() => setMode(ODONTOGRAM_MODE_FRM_ACR));
+            $("#ODONTOGRAM_MODE_BRIDGE").click(() => setMode(ODONTOGRAM_MODE_BRIDGE));
+            $("#ODONTOGRAM_MODE_ARROW_TOP_LEFT").click(() => setMode(ODONTOGRAM_MODE_ARROW_TOP_LEFT));
+            $("#ODONTOGRAM_MODE_ARROW_TOP_RIGHT").click(() => setMode(ODONTOGRAM_MODE_ARROW_TOP_RIGHT));
+            $("#ODONTOGRAM_MODE_ARROW_TOP_TURN_LEFT").click(() => setMode(ODONTOGRAM_MODE_ARROW_TOP_TURN_LEFT));
+            $("#ODONTOGRAM_MODE_ARROW_TOP_TURN_RIGHT").click(() => setMode(ODONTOGRAM_MODE_ARROW_TOP_TURN_RIGHT));
+            $("#ODONTOGRAM_MODE_ARROW_BOTTOM_LEFT").click(() => setMode(ODONTOGRAM_MODE_ARROW_BOTTOM_LEFT));
+            $("#ODONTOGRAM_MODE_ARROW_BOTTOM_RIGHT").click(() => setMode(ODONTOGRAM_MODE_ARROW_BOTTOM_RIGHT));
+            $("#ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_LEFT").click(() => setMode(ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_LEFT));
+            $("#ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT").click(() => setMode(ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT));
+            $("#ODONTOGRAM_MODE_GIC").click(() => setMode(ODONTOGRAM_MODE_GIC));
+            $("#download").click(function () {
+                var dataURL = $("#odontogram").odontogram('getDataURL');
+                if (dataURL) {
+                    var link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = 'odontogram.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert('Gagal mendapatkan data gambar. Silakan coba lagi.');
+                }
+               
+            })
+        });
+    </script>
+</body>
+</html>

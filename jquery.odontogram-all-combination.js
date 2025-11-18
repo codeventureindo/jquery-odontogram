@@ -27,6 +27,7 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_LEFT = 23; // BOTTOM-LEFT ARROW
 var ODONTOGRAM_MODE_ARROW_BOTTOM_RIGHT = 24; // BOTTOM-RIGHT ARROW
 var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_LEFT = 25; // BOTTOM-TURN-LEFT ARROW
 var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
+var ODONTOGRAM_MODE_GIC = 27; // Glass Ionomer Cement (gic)
 
 
 
@@ -89,7 +90,7 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
     function COF(vertices, options) {
         this.name = 'COF';
         this.vertices = vertices;
-        this.options = $.extend({ fillStyle: '#29b522' }, options);
+        this.options = $.extend({ fillStyle: '#FFC0CB' }, options);
         return this;
     }
     COF.prototype.render = function (ctx) {
@@ -145,10 +146,36 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
     function FIS(vertices, options) {
         this.name = 'FIS';
         this.vertices = vertices;
-        this.options = $.extend({ fillStyle: '#ed3bed' }, options);
+        this.options = $.extend({ fillStyle: '#87CEEB' }, options);
         return this;
     }
     FIS.prototype.render = function (ctx) {
+        ctx.fillStyle = this.options.fillStyle;
+        ctx.beginPath();
+
+        var vertices = this.vertices.concat([]);
+        var fpos = vertices.shift();
+        ctx.moveTo(fpos.x + 1, fpos.y + 1);
+
+        var pos;
+        while (vertices.length > 0) {
+            pos = vertices.shift();
+            if (pos) {
+                ctx.lineTo(pos.x + 1, pos.y + 1);
+            }
+        }
+        ctx.lineTo(fpos.x + 1, fpos.y + 1);
+        ctx.closePath();
+        ctx.fill();
+    }
+    // Class GIC = Glass Ionomer Cement (gic)
+    function GIC(vertices, options) {
+        this.name = 'GIC';
+        this.vertices = vertices;
+        this.options = $.extend({ fillStyle: '#90EE90' }, options);
+        return this;
+    }
+    GIC.prototype.render = function (ctx) {
         ctx.fillStyle = this.options.fillStyle;
         ctx.beginPath();
 
@@ -1763,12 +1790,13 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
                 if (['1', '2', '3'].some(a => pos.endsWith(a)) && sub == 'M') continue
 
                 if (!geometry[t[0]]) geometry[t[0]] = []
-
-                geometry[t[0]].push({
+                data = {
                     name: d.code,
                     pos: d.pos,
                     vertices: [s.bl, s.br, s.tr, s.tl]
-                })
+                };
+                console.log(data);
+                geometry[t[0]].push(data);
             } else {
                 const t = this.search('num', d.pos);
                 if (!geometry[t[0]]) geometry[t[0]] = []
@@ -1782,12 +1810,26 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
                 })
             }
         }
+       
         this.setGeometry(geometry);
         return geometry;
     }
 
     Odontogram.prototype.getDataURL = function () {
-        return this.canvas.toDataURL();
+        // Buat temporary canvas untuk menambahkan background putih
+        var tempCanvas = document.createElement('canvas');
+        tempCanvas.width = this.canvas.width;
+        tempCanvas.height = this.canvas.height;
+        var tempCtx = tempCanvas.getContext('2d');
+        
+        // Isi background dengan warna putih
+        tempCtx.fillStyle = '#FFFFFF';
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+        
+        // Gambar canvas asli di atas background putih
+        tempCtx.drawImage(this.canvas, 0, 0);
+        
+        return tempCanvas.toDataURL();
     }
 
     $.fn.odontogram = function (mode, arg1, arg2, arg3, arg4) {
@@ -1888,6 +1930,9 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
             case ODONTOGRAM_MODE_FIS:
                 newGeometry = new FIS(geometry.vertices);
                 break;
+            case ODONTOGRAM_MODE_GIC:
+                newGeometry = new GIC(geometry.vertices);
+                break;
             case ODONTOGRAM_MODE_NVT:
                 newGeometry = new NVT(geometry.vertices);
                 break;
@@ -1984,6 +2029,9 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
             case 'FIS':
                 newGeom = new FIS(geometry.vertices, geometry.options);
                 break;
+            case 'GIC':
+                newGeom = new GIC(geometry.vertices, geometry.options);
+                break;
             case 'NVT':
                 newGeom = new NVT(geometry.vertices, geometry.options);
                 break;
@@ -2056,6 +2104,11 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
             case 'HAPUS':
                 newGeom = new HAPUS(geometry.vertices, geometry.options);
                 break;
+        }
+
+        // Preserve pos property dari geometry asli
+        if (newGeom && geometry.pos) {
+            newGeom.pos = geometry.pos;
         }
 
         return newGeom;
@@ -2170,30 +2223,46 @@ var ODONTOGRAM_MODE_ARROW_BOTTOM_TURN_RIGHT = 26; // BOTTOM-TURN-RIGHT ARROW
     function _joinShapeTeeth(geoms1, geoms2) {
         var geom1, geom2;
         var geometry = [];
-        var addedPositions = {}; // Track posisi yang sudah ditambahkan
+        var addedTypes = {}; // Track posisi dan tipe yang sudah ditambahkan
+        var addedPositions = {}; // Track posisi untuk tipe yang tidak boleh duplicate
+        
+        // Daftar tipe yang tidak boleh duplicate di posisi yang sama (hanya boleh 1 per posisi)
+        var noDuplicateTypes = ['AMF', 'COF', 'FIS', 'GIC', 'CARIES'];
         
         // Tambahkan semua geometri baru dari geoms2
         for (var y = 0; y < geoms2.length; y++) {
             geom2 = geoms2[y];
             geometry.push(geom2);
-            if (geom2.pos) {
-                addedPositions[geom2.pos] = true;
+            if (geom2.pos && geom2.name) {
+                var key = geom2.pos + '-' + geom2.name;
+                addedTypes[key] = true;
+                
+                // Untuk tipe yang tidak boleh duplicate, track posisi-nya saja
+                if (noDuplicateTypes.indexOf(geom2.name) !== -1) {
+                    addedPositions[geom2.pos] = true;
+                }
             }
         }
         
-        // Tambahkan geometri lama dari geoms1 yang tidak bertabrakan posisi dengan geoms2
+        // Tambahkan geometri lama dari geoms1 yang tidak bertabrakan
         for (var x = 0; x < geoms1.length; x++) {
             geom1 = geoms1[x];
             
-            // Jika geometri lama tidak memiliki posisi yang sama dengan yang baru, pertahankan
             var shouldKeep = true;
-            if (geom1.pos) {
-                for (var y = 0; y < geoms2.length; y++) {
-                    geom2 = geoms2[y];
-                    // Jika posisi sama, ganti dengan yang baru
-                    if (geom1.pos === geom2.pos) {
+            if (geom1.pos && geom1.name) {
+                var key1 = geom1.pos + '-' + geom1.name;
+                
+                // Untuk tipe yang tidak boleh duplicate (AMF, COF, FIS, CARIES)
+                // Replace jika ada geometri baru dengan tipe yang sama di posisi yang sama
+                if (noDuplicateTypes.indexOf(geom1.name) !== -1) {
+                    // Jika posisi ini sudah ada geometri baru dari tipe no-duplicate, buang yang lama
+                    if (addedPositions[geom1.pos]) {
                         shouldKeep = false;
-                        break;
+                    }
+                } else {
+                    // Untuk tipe lainnya (FMC, RCT, dll), hanya replace jika posisi DAN tipe sama
+                    if (addedTypes[key1]) {
+                        shouldKeep = false;
                     }
                 }
             }
